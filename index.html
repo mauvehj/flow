@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ExcelGroup Merger - 엑셀 규격 자동 분류 & 병합기</title>
+  <meta name="description" content="여러 개의 엑셀 파일을 업로드하면 동일한 컬럼 규격(헤더)을 가진 파일끼리 자동으로 분류하여 하나로 병합해 주는 웹 애플리케이션">
+  <meta name="keywords" content="엑셀 합치기, 엑셀 병합, 엑셀 규격 분류, excel merger, xlsx merger, sheetjs">
+
+  <!-- Fonts: Pretendard & Inter -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+
+  <!-- SheetJS (xlsx) & JSZip -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-theme="dark">
+  <div class="app-background">
+    <div class="glow-sphere sphere-1"></div>
+    <div class="glow-sphere sphere-2"></div>
+  </div>
+
+  <header class="app-header">
+    <div class="container header-container">
+      <div class="brand">
+        <div class="brand-icon">
+          <i data-lucide="layers"></i>
+        </div>
+        <div class="brand-text">
+          <h1>ExcelGroup <span>Merger</span></h1>
+          <p class="tagline">동일 규격 엑셀 자동 분류 & 원클릭 통합 솔루션</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button id="btn-sample-data" class="btn btn-glass" title="테스트용 샘플 엑셀 파일 자동 생성 및 시연">
+          <i data-lucide="sparkles"></i>
+          <span>샘플 데이터로 체험</span>
+        </button>
+        <button id="btn-theme-toggle" class="btn btn-icon" aria-label="테마 전환" title="다크/라이트 모드 전환">
+          <i data-lucide="sun" class="sun-icon"></i>
+          <i data-lucide="moon" class="moon-icon"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container app-main">
+    <!-- Notice / Description Banner -->
+    <section class="hero-intro">
+      <div class="intro-badge">
+        <i data-lucide="zap"></i>
+        <span>완전 무료 & 브라우저 로컬 처리 (서버 전송 없음, 100% 보안)</span>
+      </div>
+      <h2>서로 다른 양식이 섞여 있어도 <strong>알아서 묶고 합쳐드립니다</strong></h2>
+      <p>매출표, 사원명부, 재고목록 등 여러 양식의 엑셀 파일들을 한 번에 넣으세요. 컬럼 헤더 규격을 자동 분석하여 같은 양식끼리 똑똑하게 묶어 병합해 드립니다.</p>
+    </section>
+
+    <!-- Upload Zone -->
+    <section class="upload-section">
+      <div id="drop-zone" class="drop-zone">
+        <input type="file" id="file-input" multiple accept=".xlsx, .xls, .csv" class="file-input-hidden">
+        <div class="drop-zone-content">
+          <div class="upload-icon-pulse">
+            <i data-lucide="file-spreadsheet"></i>
+          </div>
+          <h3>엑셀 파일들을 이곳에 드래그하여 놓으세요</h3>
+          <p>또는 <strong>컴퓨터에서 파일 선택</strong> (복수 선택 지원)</p>
+          <div class="supported-formats">
+            <span class="format-badge"><i data-lucide="check"></i> .XLSX</span>
+            <span class="format-badge"><i data-lucide="check"></i> .XLS</span>
+            <span class="format-badge"><i data-lucide="check"></i> .CSV</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Options & Settings Panel -->
+    <section class="settings-card">
+      <div class="settings-header">
+        <div class="title-with-icon">
+          <i data-lucide="sliders-horizontal"></i>
+          <h4>병합 & 규격 분석 옵션</h4>
+        </div>
+        <span class="settings-subtext">원하는 규격 판단 기준을 설정할 수 있습니다.</span>
+      </div>
+
+      <div class="settings-grid">
+        <div class="setting-item">
+          <label for="match-mode" class="setting-label">
+            <span>규격 판별 기준</span>
+            <span class="help-tooltip" title="열 구성 일치: 컬럼명들이 같으면 순서가 달라도 같은 규격으로 묶음. 엄격 일치: 컬럼 나열 순서까지 완벽히 같아야 함.">?</span>
+          </label>
+          <div class="select-wrapper">
+            <select id="match-mode" class="form-select">
+              <option value="flexible" selected>열 구성 일치 (순서 무관, 권장)</option>
+              <option value="strict">열 순서까지 엄격 일치</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="setting-item toggle-item">
+          <div class="toggle-text">
+            <label for="opt-add-source" class="setting-label">출처 파일명 열 추가</label>
+            <span class="setting-desc">병합된 데이터에 파일명이 표시되는 <code>__출처_파일명</code> 열 생성</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="opt-add-source" checked>
+            <span class="slider round"></span>
+          </label>
+        </div>
+
+        <div class="setting-item toggle-item">
+          <div class="toggle-text">
+            <label for="opt-ignore-blank" class="setting-label">빈 행 및 공백 행 건너뛰기</label>
+            <span class="setting-desc">모든 열이 비어 있는 무의미한 데이터 행을 자동 정제</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="opt-ignore-blank" checked>
+            <span class="slider round"></span>
+          </label>
+        </div>
+
+        <div class="setting-item toggle-item">
+          <div class="toggle-text">
+            <label for="opt-trim-headers" class="setting-label">헤더 공백 자동 정규화</label>
+            <span class="setting-desc">컬럼 앞뒤 불필요한 띄어쓰기를 제거하여 규격 일치율 향상</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="opt-trim-headers" checked>
+            <span class="slider round"></span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- Uploaded Files Strip (Active when files > 0) -->
+    <section id="uploaded-files-section" class="uploaded-files-section hidden">
+      <div class="section-title-bar">
+        <div class="title-left">
+          <i data-lucide="files"></i>
+          <h3>등록된 파일 목록 (<span id="total-uploaded-count">0</span>개)</h3>
+        </div>
+        <button id="btn-clear-all" class="btn btn-sm btn-danger-ghost">
+          <i data-lucide="trash-2"></i>
+          <span>모두 비우기</span>
+        </button>
+      </div>
+
+      <div id="file-chips-container" class="file-chips-container">
+        <!-- Dynamically populated file chips -->
+      </div>
+    </section>
+
+    <!-- Processing / Loading State -->
+    <div id="loading-indicator" class="loading-container hidden">
+      <div class="spinner"></div>
+      <p id="loading-text">엑셀 파일의 시트와 규격을 정밀 분석하고 있습니다...</p>
+    </div>
+
+    <!-- Results Section (Visible after processing) -->
+    <section id="results-section" class="results-section hidden">
+      <div class="results-summary-card">
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-icon icon-blue"><i data-lucide="files"></i></div>
+            <div class="stat-details">
+              <span class="stat-num" id="stat-total-files">0</span>
+              <span class="stat-label">분석된 파일</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-purple"><i data-lucide="grid"></i></div>
+            <div class="stat-details">
+              <span class="stat-num" id="stat-total-groups">0</span>
+              <span class="stat-label">분류된 고유 규격</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-emerald"><i data-lucide="table"></i></div>
+            <div class="stat-details">
+              <span class="stat-num" id="stat-total-rows">0</span>
+              <span class="stat-label">병합된 총 데이터 행</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="batch-actions-bar">
+          <span class="batch-label">전체 일괄 다운로드:</span>
+          <div class="batch-buttons">
+            <button id="btn-download-multisheet" class="btn btn-primary" title="각 규격을 하나의 엑셀 파일 내 개별 시트로 묶어 다운로드">
+              <i data-lucide="file-spreadsheet"></i>
+              <span>통합 엑셀 다운로드 (시트별 분리)</span>
+            </button>
+            <button id="btn-download-zip" class="btn btn-secondary" title="각 규격별 완성된 엑셀 파일들을 ZIP 파일로 압축하여 다운로드">
+              <i data-lucide="archive"></i>
+              <span>규격별 엑셀 모음 (ZIP 다운로드)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title-bar mt-lg">
+        <div class="title-left">
+          <i data-lucide="folder-tree"></i>
+          <h3>규격별 병합 결과 목록</h3>
+        </div>
+        <span class="sub-hint">각 규격 카드를 열어 상세 데이터 미리보기 및 개별 파일 저장이 가능합니다.</span>
+      </div>
+
+      <!-- Groups List Container -->
+      <div id="groups-container" class="groups-container">
+        <!-- Dynamically rendered group cards -->
+      </div>
+    </section>
+
+    <!-- Empty State PlaceHolder -->
+    <div id="empty-state" class="empty-state">
+      <div class="empty-icon">
+        <i data-lucide="folder-search"></i>
+      </div>
+      <h3>아직 업로드된 엑셀 파일이 없습니다</h3>
+      <p>상단의 영역에 파일을 끌어다 놓거나, <strong>[샘플 데이터로 체험]</strong> 버튼을 눌러 바로 기능을 테스트해 보세요!</p>
+    </div>
+  </main>
+
+  <!-- Data Preview Modal -->
+  <div id="preview-modal" class="modal-overlay hidden" aria-hidden="true">
+    <div class="modal-content glass-card">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-badge" id="modal-group-badge">규격 #1</div>
+          <h3 id="modal-title">병합 데이터 미리보기</h3>
+        </div>
+        <div class="modal-header-actions">
+          <button id="btn-modal-export" class="btn btn-sm btn-primary">
+            <i data-lucide="download"></i>
+            <span>이 규격 엑셀 다운로드</span>
+          </button>
+          <button id="btn-modal-close" class="btn btn-icon modal-close-btn" aria-label="닫기">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-info-bar">
+        <div class="modal-stat">
+          <span>병합 파일 수: <strong id="modal-file-count">0</strong>개</span>
+          <span class="divider">|</span>
+          <span>총 데이터: <strong id="modal-row-count">0</strong>개 행</span>
+        </div>
+        <div class="modal-search-box">
+          <i data-lucide="search"></i>
+          <input type="text" id="modal-search-input" placeholder="결과 내 실시간 검색...">
+        </div>
+      </div>
+
+      <div class="table-responsive" id="table-scroll-container">
+        <table class="preview-table" id="preview-table">
+          <thead id="preview-thead">
+            <!-- Headers injected here -->
+          </thead>
+          <tbody id="preview-tbody">
+            <!-- Rows injected here -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="modal-footer">
+        <div class="pagination-info" id="pagination-info">
+          1-50 / 총 120개 행
+        </div>
+        <div class="pagination-controls">
+          <button id="btn-page-prev" class="btn btn-sm btn-glass"><i data-lucide="chevron-left"></i> 이전</button>
+          <span id="page-num-display" class="page-badge">1 / 3</span>
+          <button id="btn-page-next" class="btn btn-sm btn-glass">다음 <i data-lucide="chevron-right"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="js/excel-parser.js"></script>
+  <script src="js/merger.js"></script>
+  <script src="js/sample-data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
