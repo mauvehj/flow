@@ -239,58 +239,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
     state.groups.forEach((group) => {
       const card = document.createElement('div');
-      card.className = 'group-card';
+      card.className = 'group-card-compact';
       card.setAttribute('data-group-id', group.id);
 
-      // Columns list chips
-      const columnChipsHtml = group.headers.map(col => `
-        <span class="column-chip">
-          <i data-lucide="columns"></i>
-          ${col}
-        </span>
+      // Columns list chips (showing up to 7 columns with count badge if more)
+      const maxShownCols = 7;
+      let columnChipsHtml = group.headers.slice(0, maxShownCols).map(col => `
+        <span class="column-chip-compact">${col}</span>
       `).join('');
+      if (group.headers.length > maxShownCols) {
+        columnChipsHtml += `<span class="column-chip-compact more">+${group.headers.length - maxShownCols}개</span>`;
+      }
 
       // Files list in group
       const filesListHtml = group.files.map(filename => `
-        <span class="group-file-item">
+        <span class="group-file-pill" title="${filename}">
           <i data-lucide="file-check"></i>
-          ${filename}
+          <span class="pill-name">${filename}</span>
         </span>
       `).join('');
 
       card.innerHTML = `
-        <div class="group-card-header">
-          <div class="group-info-left">
-            <span class="group-tag">규격 #${group.index}</span>
-            <div class="group-title-text">
-              <span class="group-name">${group.files.length}개 파일 병합</span>
-              <span class="group-meta">총 ${group.totalRows.toLocaleString()}개 데이터 행 &bull; ${group.headers.length}개 컬럼 규격</span>
+        <div class="group-card-compact-main">
+          <div class="group-meta-left">
+            <span class="group-badge-compact">규격 #${group.index}</span>
+            <span class="group-stats-text"><strong>${group.files.length}</strong>개 파일 &bull; <strong>${group.totalRows.toLocaleString()}</strong>행</span>
+            <div class="group-columns-wrap">
+              ${columnChipsHtml}
             </div>
           </div>
-          <div class="group-actions">
-            <button class="btn btn-sm btn-glass btn-preview-group" data-group-id="${group.id}">
+          <div class="group-actions-compact">
+            <button class="btn btn-xs btn-glass btn-preview-group" data-group-id="${group.id}">
               <i data-lucide="eye"></i>
               <span>미리보기</span>
             </button>
-            <button class="btn btn-sm btn-primary btn-export-single" data-group-id="${group.id}">
+            <button class="btn btn-xs btn-primary btn-export-single" data-group-id="${group.id}">
               <i data-lucide="download"></i>
-              <span>엑셀 다운로드</span>
+              <span>다운로드</span>
             </button>
           </div>
         </div>
-
-        <div class="schema-columns-section">
-          <span class="schema-label">감지된 헤더 규격 (${group.headers.length}개 컬럼)</span>
-          <div class="schema-columns-chips">
-            ${columnChipsHtml}
-          </div>
-        </div>
-
-        <div class="group-files-section">
-          <div class="group-files-header">
-            <span>포함된 파일 목록 (${group.files.length}개)</span>
-          </div>
-          <div class="group-file-items">
+        <div class="group-files-compact-strip">
+          <span class="strip-label">파일:</span>
+          <div class="strip-pills">
             ${filesListHtml}
           </div>
         </div>
